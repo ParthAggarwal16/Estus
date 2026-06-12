@@ -1,0 +1,8 @@
+{
+  "name": "backpack-clone",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}
