@@ -11,3 +11,15 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+model vault {
+  id           String   @id @default(uuid())
+  passwordHash String
+  createAt     DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  // accounts          Account[]
+}
+
+model Account {
+  id String @id @default(uuid())
+}
