@@ -12,14 +12,20 @@ datasource db {
   provider = "postgresql"
 }
 
-model vault {
-  id           String   @id @default(uuid())
+model Vault {
+  id           String    @id @default(uuid())
   passwordHash String
-  createAt     DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  // accounts          Account[]
+  createAt     DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  accounts     Account[]
 }
 
 model Account {
-  id String @id @default(uuid())
+  id        String   @id @default(uuid())
+  name      String
+  vaultId   String
+  vault     Vault    @relation(fields: [vaultId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  //addresses Address[]
 }
