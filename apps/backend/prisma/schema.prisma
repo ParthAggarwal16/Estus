@@ -21,14 +21,25 @@ model Vault {
 }
 
 model Account {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   name      String
   vaultId   String
-  vault     Vault    @relation(fields: [vaultId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  vault     Vault     @relation(fields: [vaultId], references: [id])
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   //addresses Address[]
+  addresses Address[]
 }
 
 model Address {
+  id         String   @id @default(uuid())
+  publicKey  String
+  privateKey String
+  account    Account  @relation(fields: [accountId], references: [id])
+  accountId  String
+  // network    Network @relation(fields: [networkId], references: [id])
+  networkId  String
+  //transactions Transaction[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
