@@ -32,39 +32,39 @@ model Account {
 }
 
 model Address {
-  id         String   @id @default(uuid())
-  publicKey  String
-  privateKey String
-  account    Account  @relation(fields: [accountId], references: [id])
-  accountId  String
-  network    Network  @relation(fields: [networkId], references: [id])
-  networkId  String
-  //transactions Transaction[]
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id           String        @id @default(uuid())
+  publicKey    String
+  encryptedKey String
+  account      Account       @relation(fields: [accountId], references: [id])
+  accountId    String
+  network      Network       @relation(fields: [networkId], references: [id])
+  networkId    String
+  transactions Transaction[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 }
 
-model Newtork {
-  id        String    @id @default(uuid())
+model Network {
+  id        String      @id @default(uuid())
   name      String
-  //type        networkType(later create a enum for network types with sol, evm, base, polygon)
+  type      NetworkType
   chainId   String
   rpcURL    String
   addresses Address[]
   tokens    Token[]
-  createdAt DateTime  @default(now())
+  createdAt DateTime    @default(now())
 }
 
 model Transaction {
-  id          String   @id @default(uuid())
-  signature   String   @unique
+  id          String          @id @default(uuid())
+  signature   String          @unique
   fromAddress String
   toAddress   String
   amount      Decimal
-  // type TransactionType
-  address     Address  @relation(fields: [addressId], references: [id])
+  type        TransactionType
+  address     Address         @relation(fields: [addressId], references: [id])
   addressId   String
-  createAt    DateTime @default(now())
+  createAt    DateTime        @default(now())
 }
 
 model Token {
@@ -72,7 +72,20 @@ model Token {
   symbol      String
   name        String
   mintAddress String
-  network     Newtork  @relation(fields: [networkId], references: [id])
+  network     Network  @relation(fields: [networkId], references: [id])
   networkId   String
   createdAt   DateTime @default(now())
+}
+
+enum NetworkType {
+  SOLANA
+  ETHEREUM
+  BASE
+  POLYGON
+}
+
+enum TransactionType {
+  SEND
+  RECIEVE
+  SWAP
 }
