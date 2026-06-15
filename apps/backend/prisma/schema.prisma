@@ -37,9 +37,20 @@ model Address {
   privateKey String
   account    Account  @relation(fields: [accountId], references: [id])
   accountId  String
-  // network    Network @relation(fields: [networkId], references: [id])
+  network    Network  @relation(fields: [networkId], references: [id])
   networkId  String
   //transactions Transaction[]
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
+
+model Newtork {
+  id        String    @id @default(uuid())
+  name      String
+  //type        networkType(later create a enum for network types with sol, evm, base, polygon)
+  chainId   String
+  rpcURL    String
+  addresses Address[]
+  // tokens        Token[]
+  createdAt DateTime  @default(now())
 }
