@@ -29,3 +29,6 @@ model Account {
   updatedAt DateTime @updatedAt
   //addresses Address[]
 }
+
+model Address {
+}
