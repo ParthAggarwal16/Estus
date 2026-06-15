@@ -54,3 +54,15 @@ model Newtork {
   // tokens        Token[]
   createdAt DateTime  @default(now())
 }
+
+model Transaction {
+  id          String   @id @default(uuid())
+  signature   String   @unique
+  fromAddress String
+  toAddress   String
+  amount      Decimal
+  // type TransactionType
+  address     Address  @relation(fields: [addressId], references: [id])
+  addressId   String
+  createAt    DateTime @default(now())
+}
