@@ -8,6 +8,8 @@ const app = express()
 
 app.use(express.json())
 
+let vaultUnlocked = false
+
 app.post("/vault/create", async (req, res) => {
   try {
     const { password } = req.body
@@ -48,14 +50,36 @@ app.get("/vault/status", async (req, res) => {
     const existingVault = await prisma.vault.findFirst();
     return res.status(200).json({
       exists: !!existingVault,
-    });
+    })
   } catch (err) {
     console.error(err);
     return res.status(500).json({
       error: "Internal server error",
-    });
+    })
   }
-});
+})
+
+app.post("/vault/unlock", async (req, res) => {
+  const { password } = req.body
+  if (!password || typeof password !== "string") {
+    return res.status(400).json({ error: "Password required" })
+  }
+  const vault = await prisma.vault.findFirst()
+  if (!vault) {
+    return res.status(400).json({ error: "Vault not found" })
+  }
+  const isValidPassowrd = await bcrypt.compare(password, vault.passwordHash)
+  if (!isValidPassowrd) {
+    return res.status(401).json({ error: "InValid Password" })
+
+  }
+  vaultUnlocked = true
+
+  return res.status(200).json({
+    message: "Vault unlocked"
+  })
+}
+)
 
 app.listen(3000, () => {
   console.log("Server started on http://localhost:3000")
