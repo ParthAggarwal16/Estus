@@ -10,13 +10,20 @@ app.use(express.json())
 
 app.post("/vault/create", async (req, res) => {
   try {
-    const { password } = req.body;
+    const { password } = req.body
 
     if (!password || typeof password !== "string") {
-      return res.status(400).json({ error: "Password required" });
+      return res.status(400).json({ error: "Password required" })
     }
     if (password.length < 8 || password.length > 128) {
-      return res.status(400).json({ error: "Invalid password length" });
+      return res.status(400).json({ error: "Invalid password length" })
+    }
+
+    const existingVault = await prisma.vault.findFirst();
+    if (existingVault) {
+      return res.status(409).json({
+        error: "Vault already exists",
+      });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
@@ -25,14 +32,28 @@ app.post("/vault/create", async (req, res) => {
       data: {
         passwordHash,
       },
-    });
+    })
     return res.status(201).json({
       vaultId: vault.id,
       message: "Vault created",
+    })
+  } catch (err) {
+    console.error(err)
+    return res.status(500).json({ error: "Internal server error" })
+  }
+})
+
+app.get("/vault/status", async (req, res) => {
+  try {
+    const existingVault = await prisma.vault.findFirst();
+    return res.status(200).json({
+      exists: !!existingVault,
     });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({
+      error: "Internal server error",
+    });
   }
 });
 
