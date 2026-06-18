@@ -87,6 +87,19 @@ app.post("/vault/unlock", async (req, res) => {
   }
 })
 
+app.post("/vault/lock", async (req, res) => {
+  const vault = await prisma.vault.findFirst()
+  if (!vault) {
+    return res.status(400).json({ error: "Vault not found" })
+  }
+  if (!vaultUnlocked) {
+    return res.status(400).json({ error: "Vault already locked" })
+  }
+  vaultUnlocked = false
+  return res.status(200).json({ message: "Vault locked" })
+})
+
+
 app.listen(3000, () => {
   console.log("Server started on http://localhost:3000")
 });
