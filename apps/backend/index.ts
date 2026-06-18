@@ -49,7 +49,8 @@ app.get("/vault/status", async (req, res) => {
   try {
     const existingVault = await prisma.vault.findFirst();
     return res.status(200).json({
-      exists: !!existingVault,
+      "exists": true,
+      "unlocked": false
     })
   } catch (err) {
     console.error(err);
@@ -88,15 +89,21 @@ app.post("/vault/unlock", async (req, res) => {
 })
 
 app.post("/vault/lock", async (req, res) => {
-  const vault = await prisma.vault.findFirst()
-  if (!vault) {
-    return res.status(400).json({ error: "Vault not found" })
+  try {
+    const vault = await prisma.vault.findFirst()
+    if (!vault) {
+      return res.status(400).json({ error: "Vault not found" })
+    }
+    if (!vaultUnlocked) {
+      return res.status(400).json({ error: "Vault already locked" })
+    }
+    vaultUnlocked = false
+    return res.status(200).json({ message: "Vault locked" })
+  } catch (err) {
+    console.error(err)
+    return res.status(500).json({ error: "Internal Server Error" })
   }
-  if (!vaultUnlocked) {
-    return res.status(400).json({ error: "Vault already locked" })
-  }
-  vaultUnlocked = false
-  return res.status(200).json({ message: "Vault locked" })
+
 })
 
 
