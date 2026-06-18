@@ -106,6 +106,14 @@ app.post("/vault/lock", async (req, res) => {
 
 })
 
+// app.post("/account/", async(req, res) => {
+// vault must exist
+// the vault should be unlocked
+// this would recieve account name
+// finds the single vault
+// create an account linked to that vault
+// return account data
+// })
 
 app.listen(3000, () => {
   console.log("Server started on http://localhost:3000")
