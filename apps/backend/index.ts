@@ -145,20 +145,25 @@ app.post("/account/create", async (req, res) => {
 })
 
 app.get("/accounts", async (req, res) => {
-  const vault = await prisma.vault.findFirst()
-  if (!vault) {
-    return res.status(400).json({ error: "Vault doesnt exist" })
-  }
-  if (!vaultUnlocked) {
-    return res.status(401).json({ error: "Vault is locked" })
-  }
+  try {
+    const vault = await prisma.vault.findFirst()
+    if (!vault) {
+      return res.status(404).json({ error: "Vault doesnt exist" })
+    }
+    if (!vaultUnlocked) {
+      return res.status(401).json({ error: "Vault is locked" })
+    }
 
-  const accounts = await prisma.account.findMany({
-    where: { vaultId: vault.id },
-    orderBy: { createdAt: "asc" }
-  })
+    const accounts = await prisma.account.findMany({
+      where: { vaultId: vault.id },
+      orderBy: { createdAt: "asc" }
+    })
 
-  return res.status(200).json({ accounts })
+    return res.status(200).json({ accounts })
+  } catch (err) {
+    console.error(err)
+    return res.status(500).json({ error: "Internal Server Error" })
+  }
 })
 
 app.listen(3000, () => {
