@@ -167,17 +167,22 @@ app.get("/accounts", async (req, res) => {
 })
 
 app.get("/accounts/:id", async (req, res) => {
-  if (!vaultUnlocked) {
-    res.status(401).json({ error: "Vault is locked" })
-  }
+  try {
+    if (!vaultUnlocked) {
+      res.status(401).json({ error: "Vault is locked" })
+    }
 
-  const { id } = req.params
-  const account = await prisma.account.findUnique({ where: { id } })
+    const { id } = req.params
+    const account = await prisma.account.findUnique({ where: { id } })
 
-  if (!account) {
-    res.status(404).json({ error: "Acciount not found" })
+    if (!account) {
+      return res.status(404).json({ error: "Acciount not found" })
+    }
+    return res.status(200).json(account)
+  } catch (err) {
+    console.error(err)
+    return res.status(500).json({ error: "Internal Server Error" })
   }
-  return res.status(200).json(account)
 })
 
 app.listen(3000, () => {
