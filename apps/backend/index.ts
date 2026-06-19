@@ -106,14 +106,38 @@ app.post("/vault/lock", async (req, res) => {
 
 })
 
-// app.post("/account/", async(req, res) => {
-// vault must exist
-// the vault should be unlocked
-// this would recieve account name
-// finds the single vault
-// create an account linked to that vault
-// return account data
-// })
+app.post("/account/create", async (req, res) => {
+
+  const vault = await prisma.vault.findFirst()
+  if (!vault) {
+    return res.status(404).json({ error: "Vault not found" })
+  }
+  if (!vaultUnlocked) {
+    return res.status(401).json({ error: "Vault is locked" })
+  }
+
+  const { name } = req.body
+  if (!name || typeof name !== "string") {
+    return res.status(400).json({ error: "Account name required" })
+  }
+
+  const existingAccount = await prisma.account.findFirst({ where: { vaultId: vault.id, name } })
+  if (existingAccount) {
+    return res.status(409).json({ error: "Account already exists" })
+  }
+
+  const account = await prisma.account.create({
+    data: {
+      vaultId: vault.id,
+      name
+    }
+  })
+  return res.status(200).json({
+    accountId: account.id,
+    name: account.name,
+    message: "Account created"
+  })
+})
 
 app.listen(3000, () => {
   console.log("Server started on http://localhost:3000")
