@@ -33,4 +33,10 @@ export function decryptPrivateKey(encryptedData: string, password: string): stri
   const key = crypto.pbkdf2Sync(password, Buffer.from(saltHex, "hex"), ITERATIONS, KEY_LENGTH, "sha256")
 
   const decipher = crypto.createDecipheriv(ALGORITHM, key, Buffer.from(ivHex, "hex"))
+  decipher.setAuthTag(Buffer.from(authtagHex, "hex"))
+
+  let decrypted = decipher.update(encrypted, "hex", "utf8")
+  decrypted += decipher.final("utf8")
+
+  return decrypted
 }
