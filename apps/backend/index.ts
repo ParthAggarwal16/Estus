@@ -1,6 +1,8 @@
-import express from "express";
-import { PrismaClient } from "@prisma/client";
+import express from "express"
+import { PrismaClient } from "@prisma/client"
 import bcrypt from "bcrypt"
+import { generateSolanaKeypair } from "./crypto/solana"
+import { encryptPrivateKey, decryptPrivateKey } from "./crypto/encryption"
 
 const prisma = new PrismaClient()
 
@@ -231,10 +233,14 @@ app.post("/accounts/:id/addresses/create", async (req, res) => {
     if (!network) {
       return res.status(400).json({ error: "Network not found" })
     }
+
+    const { publicKey, privateKey } = generateSolanaKeypair()
+    const encryptedKey = encryptPrivateKey(privateKey, unlockedPassword!)
+
     const address = await prisma.address.create({
       data: {
-        publicKey: "TEMP_PUBLIC_KEY",
-        encryptedKey: "TEMP_ENCRYPTED_KEY",
+        publicKey,
+        encryptedKey,
         accountId, networkId
       }
     })
