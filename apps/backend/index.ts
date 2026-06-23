@@ -175,7 +175,7 @@ app.get("/accounts", async (req, res) => {
 app.get("/accounts/:id", async (req, res) => {
   try {
     if (!vaultUnlocked) {
-      res.status(401).json({ error: "Vault is locked" })
+      return res.status(401).json({ error: "Vault is locked" })
     }
 
     const { id } = req.params
