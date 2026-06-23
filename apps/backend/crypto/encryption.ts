@@ -21,3 +21,16 @@ export function encryptPrivateKey(privateKey: string, password: string): string 
   return [salt.toString("hex"), iv.toString("hex"), authtag.toString("hex"), encrypted].join(":")
 
 }
+
+export function decryptPrivateKey(encryptedData: string, password: string): string {
+  const parts = encryptedData.split(":")
+  if (parts.length !== 4) {
+    throw new Error("Invalid encryption data format")
+  }
+
+  const [saltHex, ivHex, authtagHex, encrypted] = parts as [string, string, string, string]
+
+  const key = crypto.pbkdf2Sync(password, Buffer.from(saltHex, "hex"), ITERATIONS, KEY_LENGTH, "sha256")
+
+  const decipher = crypto.createDecipheriv(ALGORITHM, key, Buffer.from(ivHex, "hex"))
+}
