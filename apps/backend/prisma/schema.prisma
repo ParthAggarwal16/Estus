@@ -21,14 +21,15 @@ model Vault {
 }
 
 model Account {
-  id        String    @id @default(uuid())
-  name      String
-  vaultId   String
-  vault     Vault     @relation(fields: [vaultId], references: [id])
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id         String      @id @default(uuid())
+  name       String
+  vaultId    String
+  vault      Vault       @relation(fields: [vaultId], references: [id])
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
   //addresses Address[]
-  addresses Address[]
+  addresses  Address[]
+  seedPhrase SeedPhrase?
 }
 
 model Address {
@@ -101,3 +102,11 @@ enum TransactionType {
 //   transactionHash   String   @unique
 //   createdAt         DateTime @default(now())
 // }
+
+model SeedPhrase {
+  id                String   @id @default(uuid())
+  encryptedMnemonic String
+  accountId         String   @unique
+  account           Account  @relation(fields: [accountId], references: [id])
+  createdAt         DateTime @default(now())
+}
