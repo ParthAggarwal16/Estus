@@ -19,3 +19,19 @@ export function importSolanaPrivateKey(privateKey: string) {
   }
 }
 
+export function importSolanaMnemonic(mnemonic: string) {
+  const isValid = bip39.validateMnemonic(mnemonic)
+
+  if (!isValid) {
+    throw new Error("Invalid mnemonic")
+  }
+
+  const seed = bip39.mnemonicToSeedSync(mnemonic)
+
+  const keypair = Keypair.fromSeed(seed.subarray(0, 32))
+
+  return {
+    publicKey: keypair.publicKey.toBase58(),
+    privateKey: bs58.encode(keypair.secretKey)
+  }
+}
