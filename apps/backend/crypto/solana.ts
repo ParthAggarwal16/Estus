@@ -1,37 +1,32 @@
 import { Keypair } from "@solana/web3.js"
 import bs58 from "bs58"
 import bip39 from "bip39"
+import { derivePath } from "ed25519-hd-key"
 
-export function generateSolanaKeypair() {
-  const keypair = Keypair.generate()
-
-  return {
-    publicKey: keypair.publicKey.toBase58(),
-    privateKey: bs58.encode(keypair.secretKey)
-  }
+export function generateMnemonic() {
+  return bip39.generateMnemonic()
 }
 
-export function importSolanaPrivateKey(privateKey: string) {
-  const keypair = Keypair.fromSecretKey(bs58.decode(privateKey))
-  return {
-    publicKey: keypair.publicKey.toBase58(),
-    privateKey
-  }
+export function validateMnemonic(mnemonic: string) {
+  return bip39.validateMnemonic(mnemonic)
 }
 
-export function importSolanaMnemonic(mnemonic: string) {
-  const isValid = bip39.validateMnemonic(mnemonic)
-
-  if (!isValid) {
+export function deriveSolanaWallet(mnemonic: string, accountIndex = 0) {
+  if (!validateMnemonic(mnemonic)) {
     throw new Error("Invalid mnemonic")
   }
 
   const seed = bip39.mnemonicToSeedSync(mnemonic)
+  const hexSeed = seed.toString("hex")
 
-  const keypair = Keypair.fromSeed(seed.subarray(0, 32))
+  const derivationPath = `m/44'/501'/${accountIndex}/0'`
 
+  const deriveSeed = derivePath(derivationPath, hexSeed).key
+
+  const keyPair = Keypair.fromSeed(deriveSeed)
   return {
-    publicKey: keypair.publicKey.toBase58(),
-    privateKey: bs58.encode(keypair.secretKey)
+    publicKey: keyPair.publicKey.toBase58(),
+    privateKey: bs58.encode(keyPair.secretKey),
+    derivationPath
   }
 }
