@@ -2,6 +2,7 @@ import express from "express"
 import { PrismaClient } from "@prisma/client"
 import bcrypt from "bcrypt"
 import { encryptPrivateKey, decryptPrivateKey } from "./crypto/encryption"
+import { deriveSolanaWallet, importSolanaKeyPair, generateMnemonic } from "./crypto/solana"
 
 const prisma = new PrismaClient()
 
@@ -220,33 +221,54 @@ app.post("/accounts/:id/addresses/create", async (req, res) => {
     const { networkId } = req.body
 
     if (!networkId) {
-      return res.status(400).json({ error: "Network Id is required" })
+      return res.status(400).json({ error: "Network id is required" })
     }
 
-    const account = await prisma.account.findUnique({ where: { id: accountId } })
+    const account = await prisma.account.findUnique({ where: { id: accountId }, include: { seedPhrase: true } })
+
     if (!account) {
-      return res.status(400).json({ error: "Account not found" })
+      return res.status(404).json({ error: "Account not found" })
     }
 
     const network = await prisma.network.findUnique({ where: { id: networkId } })
+
     if (!network) {
-      return res.status(400).json({ error: "Network not found" })
+      return res.status(404).json({ error: "Network not found" })
     }
 
-    const { publicKey, privateKey } = generateSolanaKeypair()
+    let mnemonic: string
+    if (account.seedPhrase) {
+      mnemonic = decryptPrivateKey(
+        account.seedPhrase.encryptedMnemonic,
+        unlockedPassword!
+      )
+    } else {
+      mnemonic = generateMnemonic()
+
+      await prisma.seedPhrase.create({ data: { accountId, encryptedMnemonic: encryptPrivateKey(mnemonic, unlockedPassword!) } })
+    }
+
+    const walletIndex = await prisma.address.count({ where: { accountId } })
+
+    const { publicKey, privateKey, derivationPath } = deriveSolanaWallet(mnemonic, walletIndex)
+
     const encryptedKey = encryptPrivateKey(privateKey, unlockedPassword!)
 
     const address = await prisma.address.create({
       data: {
         publicKey,
         encryptedKey,
-        accountId, networkId
-      }
+        derivationPath,
+        accountId,
+        networkId,
+      },
     })
 
-    return res.status(201).json({ message: "Address Created", address })
+    return res.status(201).json({ message: "Address created", address })
+
   } catch (err) {
-    console.error(err)
+    console.error(err);
+
     return res.status(500).json({ error: "Internal Server Error" })
   }
 })
