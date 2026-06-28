@@ -333,7 +333,7 @@ app.get("/addresses/:id/export", async (req, res) => {
   }
 })
 
-app.post("accounts/:id/address/import", async (req, res) => {
+app.post("accounts/:id/addresses/import", async (req, res) => {
   if (!vaultUnlocked) {
     return res.status(401).json({ error: "Vault is Locked" })
   }
@@ -354,6 +354,29 @@ app.post("accounts/:id/address/import", async (req, res) => {
     return res.status(400).json({ error: "Please provide only one import menthod" })
   }
 
+  const account = await prisma.account.findUnique({ where: { id: accountId }, include: { seedPhrase: true } })
+
+  if (!account) {
+    return res.status(400).json({ error: "Accout not found" })
+  }
+
+  const network = await prisma.network.findUnique({ where: { id: networkId } })
+
+  if (!network) {
+    return res.status(400).json({ error: "Network not found" })
+  }
+
+  let publicKey: string
+  let encryptedKey: string
+  let derivationPath: string | null = null
+
+  if (privateKey) {
+    const wallet = importSolanaKeyPair(privateKey)
+
+    publicKey = wallet.publicKey
+
+    encryptedKey = encryptPrivateKey(wallet.privateKey, unlockedPassword!)
+  }
 })
 
 
