@@ -394,20 +394,14 @@ app.post("/accounts/:id/addresses/import", async (req, res) => {
       switch (network.type) {
         case "SOLANA": {
           const wallet = importSolanaPrivateKey(privateKey)
-
           publicKey = wallet.publicKey
-          encryptedKey = encryptPrivateKey(
-            wallet.privateKey,
-            unlockedPassword!
-          )
+          encryptedKey = encryptPrivateKey(wallet.privateKey, unlockedPassword!)
 
           break
         }
 
         default:
-          return res.status(400).json({
-            error: `${network.type} not supported yet`,
-          })
+          return res.status(400).json({ error: `${network.type} not supported yet` })
       }
     } else {
       if (!validateMnemonic(mnemonic)) {
@@ -426,10 +420,20 @@ app.post("/accounts/:id/addresses/import", async (req, res) => {
         })
       }
 
-      const wallet = deriveSolanaWallet(mnemonic, accountIndex)
-      publicKey = wallet.publicKey
-      encryptedKey = encryptPrivateKey(wallet.privateKey, unlockedPassword!)
-      derivationPath = wallet.derivationPath
+      switch (network.type) {
+        case "SOLANA": {
+          const wallet = deriveSolanaWallet(mnemonic, accountIndex)
+
+          publicKey = wallet.publicKey
+          encryptedKey = encryptPrivateKey(wallet.privateKey, unlockedPassword!)
+          derivationPath = wallet.derivationPath
+
+          break
+        }
+
+        default:
+          return res.status(400).json({ error: `${network.type} not supported yet` })
+      }
 
     }
 
