@@ -251,7 +251,25 @@ app.post("/accounts/:id/addresses/create", async (req, res) => {
 
     const walletIndex = await prisma.address.count({ where: { accountId } })
 
-    const { publicKey, privateKey, derivationPath } = deriveSolanaWallet(mnemonic, walletIndex)
+    let publicKey: string
+    let privateKey: string
+    let derivationPath: string | null = null
+
+    switch (network.type) {
+      case "SOLANA": {
+        const wallet = deriveSolanaWallet(mnemonic, walletIndex)
+
+        publicKey = wallet.publicKey
+        privateKey = wallet.privateKey
+        derivationPath = wallet.derivationPath
+        break
+      }
+
+      default:
+        return res.status(400).json({
+          error: `${network.type} not supported yet`,
+        })
+    }
 
     const encryptedKey = encryptPrivateKey(privateKey, unlockedPassword!)
 
