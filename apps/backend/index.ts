@@ -509,9 +509,13 @@ app.delete("/addresses/:id", async (req, res) => {
 })
 
 app.get("/networks", async (req, res) => {
-  const networks = await prisma.network.findMany({ orderBy: { name: "asc" } })
-  return res.status(200).json({ networks })
-
+  try {
+    const networks = await prisma.network.findMany({ orderBy: { name: "asc" } })
+    return res.status(200).json({ networks })
+  } catch (err) {
+    console.error(err)
+    return res.status(500).json({ error: "Internal Server Error" })
+  }
 })
 
 app.listen(3000, () => {
