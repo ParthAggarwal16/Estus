@@ -508,6 +508,11 @@ app.delete("/addresses/:id", async (req, res) => {
   }
 })
 
+app.get("/networks", async (req, res) => {
+  const networks = await prisma.network.findMany({ orderBy: { name: "asc" } })
+  return res.status(200).json({ networks })
+
+})
 
 app.listen(3000, () => {
   console.log("Server started on http://localhost:3000")
