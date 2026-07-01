@@ -73,7 +73,7 @@ model Token {
   id          String   @id @default(uuid())
   symbol      String
   name        String
-  mintAddress String
+  mintAddress String   @unique
   network     Network  @relation(fields: [networkId], references: [id])
   networkId   String
   createdAt   DateTime @default(now())
