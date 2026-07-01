@@ -550,6 +550,17 @@ app.get("/networks/:id/tokens", async (req, res) => {
 
 })
 
+app.get("/tokens/:id", async (req, res) => {
+
+  const { id } = req.params
+  const token = await prisma.token.findUnique({ where: { id } })
+  if (!token) {
+    return res.status(404).json({ error: "Token not found" })
+  }
+
+  return res.status(200).json(token)
+})
+
 app.listen(3000, () => {
   console.log("Server started on http://localhost:3000")
 });
