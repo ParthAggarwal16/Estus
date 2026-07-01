@@ -520,12 +520,18 @@ app.get("/networks", async (req, res) => {
 
 app.get("/networks/:id", async (req, res) => {
 
-  const { id } = req.params
-  const network = await prisma.network.findUnique({ where: { id } })
-  if (!network) {
-    return res.status(404).json({ error: "Network not found" })
+  try {
+    const { id } = req.params
+    const network = await prisma.network.findUnique({ where: { id } })
+    if (!network) {
+      return res.status(404).json({ error: "Network not found" })
+    }
+    return res.status(200).json(network)
+  } catch (err) {
+    console.error(err)
+    return res.status(500).json({ error: "Internal Server Error" })
+
   }
-  return res.status(200).json(network)
 
 })
 
