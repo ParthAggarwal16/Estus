@@ -556,19 +556,23 @@ app.get("/networks/:id/tokens", async (req, res) => {
 
 app.get("/tokens/search", async (req, res) => {
 
-  const q = req.query.q
-  if (!q || typeof (q) !== "string") {
-    return res.status(400).json({ error: "Search query Required" })
-  }
-
-  const tokens = await prisma.token.findMany({
-    where: {
-      OR: [{ symbol: { contains: q, mode: "insensitive" } }, { name: { contains: q, mode: "insensitive" } }]
+  try {
+    const q = req.query.q
+    if (!q || typeof (q) !== "string") {
+      return res.status(400).json({ error: "Search query Required" })
     }
-  })
 
-  return res.status(200).json({ tokens })
+    const tokens = await prisma.token.findMany({
+      where: {
+        OR: [{ symbol: { contains: q, mode: "insensitive" } }, { name: { contains: q, mode: "insensitive" } }]
+      }
+    })
 
+    return res.status(200).json({ tokens })
+  } catch (err) {
+    console.error(err)
+    return res.status(500).json({ error: "Internal Server Error" })
+  }
 })
 
 app.get("/tokens/:id", async (req, res) => {
