@@ -4,7 +4,6 @@ import bcrypt from "bcrypt"
 import { encryptPrivateKey, decryptPrivateKey } from "./crypto/encryption"
 import { deriveSolanaWallet, importSolanaPrivateKey, generateMnemonic } from "./crypto/solana"
 import { validateMnemonic } from "bip39"
-import e from "express"
 
 const prisma = new PrismaClient()
 
