@@ -593,26 +593,32 @@ app.get("/tokens/:id", async (req, res) => {
 })
 
 app.post("/vault/reveal-secret", async (req, res) => {
-  if (!vaultUnlocked || !unlockedPassword) {
-    return res.status(401).json({ error: "Vault is Locked" })
+
+  try {
+    if (!vaultUnlocked || !unlockedPassword) {
+      return res.status(401).json({ error: "Vault is Locked" })
+    }
+
+    const vault = await prisma.vault.findFirst()
+    if (!vault) {
+      return res.status(404).json({ error: "Vault not found" })
+    }
+
+    const account = await prisma.account.findFirst({
+      where: { seedPhrase: { isNot: null } },
+      include: { seedPhrase: true },
+    })
+
+    if (!account?.seedPhrase) {
+      return res.status(404).json({ error: "Account not found" })
+    }
+
+    const mnemonic = decryptPrivateKey(account.seedPhrase.encryptedMnemonic, unlockedPassword)
+    return res.status(200).json({ mnemonic })
+  } catch (err) {
+    console.error(err)
+    return res.status(500).json({ error: "Internal Server Error" })
   }
-
-  const vault = await prisma.vault.findFirst()
-  if (!vault) {
-    return res.status(404).json({ error: "Vault not found" })
-  }
-
-  const account = await prisma.account.findFirst({
-    where: { seedPhrase: { isNot: null } },
-    include: { seedPhrase: true },
-  })
-
-  if (!account?.seedPhrase) {
-    return res.status(404).json({ error: "Account not found" })
-  }
-
-  const mnemonic = decryptPrivateKey(account.seedPhrase.encryptedMnemonic, unlockedPassword)
-  return res.status(200).json({ mnemonic })
 
 })
 
