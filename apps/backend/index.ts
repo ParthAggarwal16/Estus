@@ -4,6 +4,7 @@ import bcrypt from "bcrypt"
 import { encryptPrivateKey, decryptPrivateKey } from "./crypto/encryption"
 import { deriveSolanaWallet, importSolanaPrivateKey, generateMnemonic } from "./crypto/solana"
 import { validateMnemonic } from "bip39"
+import { getNativeBalance } from "./services/solana"
 
 const prisma = new PrismaClient()
 
@@ -619,6 +620,24 @@ app.post("/vault/reveal-secret", async (req, res) => {
     console.error(err)
     return res.status(500).json({ error: "Internal Server Error" })
   }
+
+})
+
+app.get("/addresses/:id/balance", async (req, res) => {
+
+  const { id } = req.params
+  const address = await prisma.address.findUnique({ where: { id }, include: { network: true } })
+  if (!address) {
+    return res.status(404).json({ error: "Address not found" })
+  }
+
+  if (address.network.type !== "SOLANA") {
+    return res.status(400).json({ error: "Network not supported yet" })
+  }
+
+  const balance = await getNativeBalance(address.network.rpcURL, address.publicKey)
+
+  return res.status(200).json({ address: address.publicKey, network: address.network.type, ...balance })
 
 })
 
