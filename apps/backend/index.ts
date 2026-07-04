@@ -647,39 +647,44 @@ app.get("/addresses/:id/balance", async (req, res) => {
 
 app.get("/addresses/:id/balances", async (req, res) => {
 
-  const { id } = req.params
-  const address = await prisma.address.findUnique({ where: { id }, include: { network: true } })
-  if (!address) {
-    return res.status(404).json({ error: "Address not found" })
-  }
-  if (address.network.type !== "SOLANA") {
-    return res.status(400).json({ error: "Network not supported yet" })
-  }
-
-  const nativeBalance = await getNativeBalance(address.network.rpcURL, address.publicKey)
-  const tokenBalances = await getTokenBalances(address.network.rpcURL, address.publicKey)
-
-  const tokens = await prisma.token.findMany({ where: { mintAddress: { in: tokenBalances.map((t) => t.mintAddress) } } })
-
-  const balances = tokenBalances.map((balance) => {
-    const token = tokens.find(
-      (t) => t.mintAddress === balance.mintAddress
-    )
-
-    return {
-      symbol: token?.symbol ?? "UNKNOWN",
-      name: token?.name ?? "Unknown Token",
-      mintAddress: balance.mintAddress,
-      amount: balance.amount,
+  try {
+    const { id } = req.params
+    const address = await prisma.address.findUnique({ where: { id }, include: { network: true } })
+    if (!address) {
+      return res.status(404).json({ error: "Address not found" })
     }
-  })
+    if (address.network.type !== "SOLANA") {
+      return res.status(400).json({ error: "Network not supported yet" })
+    }
 
-  return res.status(200).json({
-    address: address.publicKey,
-    network: address.network.type,
-    native: nativeBalance,
-    tokens: balances,
-  })
+    const nativeBalance = await getNativeBalance(address.network.rpcURL, address.publicKey)
+    const tokenBalances = await getTokenBalances(address.network.rpcURL, address.publicKey)
+
+    const tokens = await prisma.token.findMany({ where: { mintAddress: { in: tokenBalances.map((t) => t.mintAddress) } } })
+
+    const balances = tokenBalances.map((balance) => {
+      const token = tokens.find(
+        (t) => t.mintAddress === balance.mintAddress
+      )
+
+      return {
+        symbol: token?.symbol ?? "UNKNOWN",
+        name: token?.name ?? "Unknown Token",
+        mintAddress: balance.mintAddress,
+        amount: balance.amount,
+      }
+    })
+
+    return res.status(200).json({
+      address: address.publicKey,
+      network: address.network.type,
+      native: nativeBalance,
+      tokens: balances,
+    })
+  } catch (err) {
+    console.error(err)
+    return res.status(500).json({ error: "Internal Server Error" })
+  }
 })
 
 app.listen(3000, () => {
