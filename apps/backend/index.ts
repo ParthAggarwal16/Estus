@@ -625,20 +625,24 @@ app.post("/vault/reveal-secret", async (req, res) => {
 
 app.get("/addresses/:id/balance", async (req, res) => {
 
-  const { id } = req.params
-  const address = await prisma.address.findUnique({ where: { id }, include: { network: true } })
-  if (!address) {
-    return res.status(404).json({ error: "Address not found" })
+  try {
+    const { id } = req.params
+    const address = await prisma.address.findUnique({ where: { id }, include: { network: true } })
+    if (!address) {
+      return res.status(404).json({ error: "Address not found" })
+    }
+
+    if (address.network.type !== "SOLANA") {
+      return res.status(400).json({ error: "Network not supported yet" })
+    }
+
+    const balance = await getNativeBalance(address.network.rpcURL, address.publicKey)
+
+    return res.status(200).json({ address: address.publicKey, network: address.network.type, ...balance })
+  } catch (err) {
+    console.error(err)
+    return res.status(500).json({ error: "Internal Server Error" })
   }
-
-  if (address.network.type !== "SOLANA") {
-    return res.status(400).json({ error: "Network not supported yet" })
-  }
-
-  const balance = await getNativeBalance(address.network.rpcURL, address.publicKey)
-
-  return res.status(200).json({ address: address.publicKey, network: address.network.type, ...balance })
-
 })
 
 app.listen(3000, () => {
