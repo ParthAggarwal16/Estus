@@ -1,4 +1,5 @@
-import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js"
+import { Connection, PublicKey, LAMPORTS_PER_SOL, Keypair, Transaction, SystemProgram, sendAndConfirmTransaction } from "@solana/web3.js"
+import bs58 from "bs58"
 
 const connections = new Map<string, Connection>()
 
@@ -18,10 +19,7 @@ export async function getNativeBalance(rpcUrl: string, address: string) {
 
   const balance = await connection.getBalance(new PublicKey(address))
 
-  return {
-    lamports: balance,
-    sol: balance / LAMPORTS_PER_SOL,
-  }
+  return { lamports: balance, sol: balance / LAMPORTS_PER_SOL }
 }
 
 export async function getTokenBalances(rpcUrl: string, publicKey: string) {
@@ -44,3 +42,24 @@ export async function getTokenBalances(rpcUrl: string, publicKey: string) {
   })
 
 }
+
+export async function sendTransaction(rpcUrl: string, fromPrivateKey: string, toPublicKey: string, lamports: number) {
+
+  const connection = getConnection(rpcUrl)
+
+  const sender = Keypair.fromSecretKey(bs58.decode(fromPrivateKey))
+  const recipeint = new PublicKey(toPublicKey)
+
+  const transaction = new Transaction().add(
+    SystemProgram.transfer({
+      fromPubkey: sender.publicKey,
+      toPubkey: recipeint,
+      lamports
+    })
+  )
+
+  const signature = await sendAndConfirmTransaction(connection, transaction, [sender])
+
+  return { signature }
+}
+
