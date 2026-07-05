@@ -33,17 +33,16 @@ model Account {
 }
 
 model Address {
-  id             String        @id @default(uuid())
+  id             String   @id @default(uuid())
   publicKey      String
   encryptedKey   String
-  account        Account       @relation(fields: [accountId], references: [id])
+  account        Account  @relation(fields: [accountId], references: [id])
   accountId      String
-  network        Network       @relation(fields: [networkId], references: [id])
+  network        Network  @relation(fields: [networkId], references: [id])
   networkId      String
-  transactions   Transaction[]
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  derivationPath String?       @db.VarChar(64)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  derivationPath String?  @db.VarChar(64)
 }
 
 model Network {
@@ -55,18 +54,6 @@ model Network {
   addresses Address[]
   tokens    Token[]
   createdAt DateTime    @default(now())
-}
-
-model Transaction {
-  id          String          @id @default(uuid())
-  signature   String          @unique
-  fromAddress String
-  toAddress   String
-  amount      Decimal
-  type        TransactionType
-  address     Address         @relation(fields: [addressId], references: [id])
-  addressId   String
-  createdAt   DateTime        @default(now())
 }
 
 model Token {
