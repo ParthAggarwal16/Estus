@@ -690,31 +690,36 @@ app.get("/addresses/:id/balances", async (req, res) => {
 
 app.post("/transactions/send", async (req, res) => {
 
-  if (!vaultUnlocked || !unlockedPassword) {
-    return res.status(401).json({ error: "Vault is Locked" })
+  try {
+    if (!vaultUnlocked || !unlockedPassword) {
+      return res.status(401).json({ error: "Vault is Locked" })
+    }
+
+    const { fromAddressId, toPublicKey, amount } = req.body
+    if (!fromAddressId || !toPublicKey || !amount || typeof amount !== "number") {
+      return res.status(400).json({ error: "fromAddressId, toPublicKey and amounts are required" })
+    }
+
+    const lamports = Math.round(amount * LAMPORTS_PER_SOL)
+
+    const address = await prisma.address.findUnique({ where: { id: fromAddressId }, include: { network: true } })
+    if (!address) {
+      return res.status(404).json({ error: "Address not found" })
+    }
+
+    if (address.network.type !== "SOLANA") {
+      return res.status(401).json({ error: `${address.network.type} not supported yet` })
+    }
+
+    const privateKey = decryptPrivateKey(address.encryptedKey, unlockedPassword)
+
+
+    const tx = await sendTransaction(address.network.rpcURL, privateKey, toPublicKey, lamports)
+    return res.status(200).json(tx)
+  } catch (err) {
+    console.error(err)
+    return res.status(500).json({ error: "Internal Server Error" })
   }
-
-  const { fromAddressId, toPublicKey, amount } = req.body
-  if (!fromAddressId || !toPublicKey || !amount || typeof amount !== "number") {
-    return res.status(400).json({ error: "fromAddressId, toPublicKey and amounts are required" })
-  }
-
-  const lamports = Math.round(amount * LAMPORTS_PER_SOL)
-
-  const address = await prisma.address.findUnique({ where: { id: fromAddressId }, include: { network: true } })
-  if (!address) {
-    return res.status(404).json({ error: "Address not found" })
-  }
-
-  if (address.network.type !== "SOLANA") {
-    return res.status(401).json({ error: `${address.network.type} not supported yet` })
-  }
-
-  const privateKey = decryptPrivateKey(address.encryptedKey, unlockedPassword)
-
-
-  const tx = await sendTransaction(address.network.rpcURL, privateKey, toPublicKey, lamports)
-  return res.status(200).json(tx)
 
 })
 
