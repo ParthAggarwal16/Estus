@@ -63,3 +63,10 @@ export async function sendTransaction(rpcUrl: string, fromPrivateKey: string, to
   return { signature }
 }
 
+export async function getTransactions(rpcUrl: string, publicKey: string) {
+
+  const connection = new Connection(rpcUrl)
+  const signatures = await connection.getSignaturesForAddress(new PublicKey(publicKey), { limit: 20 })
+
+}
+
