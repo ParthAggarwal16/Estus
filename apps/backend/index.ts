@@ -4,7 +4,7 @@ import bcrypt from "bcrypt"
 import { encryptPrivateKey, decryptPrivateKey } from "./crypto/encryption"
 import { deriveSolanaWallet, importSolanaPrivateKey, generateMnemonic } from "./crypto/solana"
 import { validateMnemonic } from "bip39"
-import { getNativeBalance, getTokenBalances, sendTransaction } from "./services/solana"
+import { getNativeBalance, getTokenBalances, sendTransaction, getTransactions } from "./services/solana"
 import { LAMPORTS_PER_SOL } from "@solana/web3.js"
 
 const prisma = new PrismaClient()
@@ -722,6 +722,31 @@ app.post("/transactions/send", async (req, res) => {
   }
 
 })
+
+app.get("/addresses/:id/transactions", async (req, res) => {
+  try {
+    const { id } = req.params
+
+    const address = await prisma.address.findUnique({ where: { id }, include: { network: true } })
+
+    if (!address) {
+      return res.status(404).json({ error: "Address not found" })
+    }
+
+    if (address.network.type !== "SOLANA") {
+      return res.status(400).json({ error: "Network not supported yet" })
+    }
+
+    const transactions = await getTransactions(address.network.rpcURL, address.publicKey)
+
+    return res.status(200).json({ address: address.publicKey, transactions })
+
+  } catch (err) {
+    console.error(err)
+    return res.status(500).json({ error: "Internal Server Error" })
+  }
+})
+
 
 app.listen(3000, () => {
   console.log("Server started on http://localhost:3000")
