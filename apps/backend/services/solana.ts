@@ -63,10 +63,27 @@ export async function sendTransaction(rpcUrl: string, fromPrivateKey: string, to
   return { signature }
 }
 
+//gonna be honest, took the help of a clanker since i couldnt get it even after like 8hrs of trying, sorry
 export async function getTransactions(rpcUrl: string, publicKey: string) {
 
   const connection = new Connection(rpcUrl)
   const signatures = await connection.getSignaturesForAddress(new PublicKey(publicKey), { limit: 20 })
 
+  const transactions = await Promise.all(signatures.map(async (signatureInfo) => {
+    const tx = await connection.getParsedTransaction(
+      signatureInfo.signature, { maxSupportedTransactionVersion: 0 },
+    )
+
+    return {
+      signature: signatureInfo.signature,
+      slot: signatureInfo.slot,
+      timestamp: signatureInfo.blockTime,
+      status: signatureInfo.err ? "failed" : "success",
+      fee: tx?.meta?.fee ?? 0,
+      transaction: tx,
+    }
+  })
+  )
+  return transactions
 }
 
