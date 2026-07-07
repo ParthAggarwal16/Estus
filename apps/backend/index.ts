@@ -6,6 +6,7 @@ import { deriveSolanaWallet, importSolanaPrivateKey, generateMnemonic } from "./
 import { validateMnemonic } from "bip39"
 import { getNativeBalance, getTokenBalances, sendTransaction, getTransactions } from "./services/solana"
 import { LAMPORTS_PER_SOL } from "@solana/web3.js"
+import { sign } from "crypto"
 
 const prisma = new PrismaClient()
 
@@ -791,6 +792,31 @@ app.get("/accounts/:id/transactions", async (req, res) => {
   }
 })
 
+app.get("/transactions/:signature", async (req, res) => {
+
+  if (!vaultUnlocked) {
+    return res.status(400).json({ error: "Vault is Locked" })
+  }
+
+  const { signature } = req.params
+  const addresses = await prisma.address.findMany({ include: { network: true } })
+
+  for (const address of addresses) {
+    switch (address.network.type) {
+      case "SOLANA": {
+        const transactions = await getTransactions(address.network.rpcURL, address.publicKey)
+        const transaction = transactions.find((tx) => tx.signature === signature)
+
+        if (transaction) {
+          return res.status(200).json({ address: address.publicKey, network: address.network.type, ...transaction })
+        }
+        break
+      }
+      default: break
+    }
+  }
+  return res.status(400).json({ error: "transaction not found" })
+})
 
 app.listen(3000, () => {
   console.log("Server started on http://localhost:3000")
