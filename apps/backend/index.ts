@@ -7,6 +7,7 @@ import { validateMnemonic } from "bip39"
 import { getNativeBalance, getTokenBalances, sendTransaction, getTransactions } from "./services/solana"
 import { LAMPORTS_PER_SOL } from "@solana/web3.js"
 import { sign } from "crypto"
+import { number } from "zod"
 
 const prisma = new PrismaClient()
 
@@ -817,6 +818,21 @@ app.get("/transactions/:signature", async (req, res) => {
       }
     }
     return res.status(400).json({ error: "transaction not found" })
+  } catch (err) {
+    console.error(err)
+    return res.status(500).json({ error: "Internal Server Error" })
+  }
+})
+
+app.get("/swap/quote", async (req, res) => {
+
+  try {
+    const { inputMint, outputMint, amount } = req.body
+    if (!inputMint || !outputMint || typeof amount !== "number") {
+      return res.status(400).json({ error: "inputMint, outputMint and amount are required" })
+    }
+    //TODO:
+    //call jupiter api quote
   } catch (err) {
     console.error(err)
     return res.status(500).json({ error: "Internal Server Error" })
