@@ -748,44 +748,47 @@ app.get("/addresses/:id/transactions", async (req, res) => {
 })
 
 app.get("/accounts/:id/transactions", async (req, res) => {
-
-  if (!vaultUnlocked || !unlockedPassword) {
-    return res.status(401).json({ error: "Vault is Locked" })
-  }
-
-  const { id: accountId } = req.params
-  const account = await prisma.account.findUnique({ where: { id: accountId } })
-
-  if (!account) {
-    return res.status(404).json({ error: "Account not found" })
-  }
-
-  const addresses = await prisma.address.findMany({ where: { accountId }, include: { network: true } })
-
-  let transactions: any[] = []
-
-  for (const address of addresses) {
-    switch (address.network.type) {
-      case "SOLANA": {
-        const txs = await getTransactions(address.network.rpcURL, address.publicKey)
-
-        transactions.push(
-          ...txs.map((tx) => ({
-            address: address.publicKey,
-            network: address.network.type,
-            ...tx,
-          }))
-        )
-        break
-      }
-      default:
-        break
+  try {
+    if (!vaultUnlocked || !unlockedPassword) {
+      return res.status(401).json({ error: "Vault is Locked" })
     }
+
+    const { id: accountId } = req.params
+    const account = await prisma.account.findUnique({ where: { id: accountId } })
+
+    if (!account) {
+      return res.status(404).json({ error: "Account not found" })
+    }
+
+    const addresses = await prisma.address.findMany({ where: { accountId }, include: { network: true } })
+
+    let transactions: any[] = []
+
+    for (const address of addresses) {
+      switch (address.network.type) {
+        case "SOLANA": {
+          const txs = await getTransactions(address.network.rpcURL, address.publicKey)
+
+          transactions.push(
+            ...txs.map((tx) => ({
+              address: address.publicKey,
+              network: address.network.type,
+              ...tx,
+            }))
+          )
+          break
+        }
+        default:
+          break
+      }
+    }
+    transactions.sort((a, b) => b.timestamp - a.timestamp)
+    return res.status(200).json({ accountId, transactions })
+
+  } catch (err) {
+    console.error(err)
+    return res.status(500).json({ error: "Internal Server Error" })
   }
-
-  transactions.sort((a, b) => b.timestamp - a.timestamp)
-  return res.status(200).json({ accountId, transactions })
-
 })
 
 
