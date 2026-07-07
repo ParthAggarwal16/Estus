@@ -43,6 +43,7 @@ model Address {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   derivationPath String?  @db.VarChar(64)
+  swaps          Swap[]
 }
 
 model Network {
@@ -79,17 +80,18 @@ enum TransactionType {
   SWAP
 }
 
-// model Swap {
-//   id                String   @id @default(cuid())
-//   addressId         String
-//   address           Address  @relation(fields: [addressId], references: [id])
-//   inputTokenId      String
-//   outputTokenId     String
-//   inputAmount       Decimal  @db.Decimal(36,9)
-//   outputAmount      Decimal  @db.Decimal(36,9)
-//   transactionHash   String   @unique
-//   createdAt         DateTime @default(now())
-// }
+model Swap {
+  id              String   @id @default(cuid())
+  addressId       String
+  address         Address  @relation(fields: [addressId], references: [id])
+  inputTokenId    String
+  outputTokenId   String
+  inputAmount     Decimal  @db.Decimal(36, 9)
+  outputAmount    Decimal  @db.Decimal(36, 9)
+  transactionHash String   @unique
+  createdAt       DateTime @default(now())
+  provider        String   @default("JUPITER")
+}
 
 model SeedPhrase {
   id                String   @id @default(uuid())
