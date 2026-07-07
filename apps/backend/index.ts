@@ -794,28 +794,33 @@ app.get("/accounts/:id/transactions", async (req, res) => {
 
 app.get("/transactions/:signature", async (req, res) => {
 
-  if (!vaultUnlocked) {
-    return res.status(400).json({ error: "Vault is Locked" })
-  }
-
-  const { signature } = req.params
-  const addresses = await prisma.address.findMany({ include: { network: true } })
-
-  for (const address of addresses) {
-    switch (address.network.type) {
-      case "SOLANA": {
-        const transactions = await getTransactions(address.network.rpcURL, address.publicKey)
-        const transaction = transactions.find((tx) => tx.signature === signature)
-
-        if (transaction) {
-          return res.status(200).json({ address: address.publicKey, network: address.network.type, ...transaction })
-        }
-        break
-      }
-      default: break
+  try {
+    if (!vaultUnlocked) {
+      return res.status(400).json({ error: "Vault is Locked" })
     }
+
+    const { signature } = req.params
+    const addresses = await prisma.address.findMany({ include: { network: true } })
+
+    for (const address of addresses) {
+      switch (address.network.type) {
+        case "SOLANA": {
+          const transactions = await getTransactions(address.network.rpcURL, address.publicKey)
+          const transaction = transactions.find((tx) => tx.signature === signature)
+
+          if (transaction) {
+            return res.status(200).json({ address: address.publicKey, network: address.network.type, ...transaction })
+          }
+          break
+        }
+        default: break
+      }
+    }
+    return res.status(400).json({ error: "transaction not found" })
+  } catch (err) {
+    console.error(err)
+    return res.status(500).json({ error: "Internal Server Error" })
   }
-  return res.status(400).json({ error: "transaction not found" })
 })
 
 app.listen(3000, () => {
