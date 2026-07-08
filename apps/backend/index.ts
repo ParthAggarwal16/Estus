@@ -6,8 +6,7 @@ import { deriveSolanaWallet, importSolanaPrivateKey, generateMnemonic } from "./
 import { validateMnemonic } from "bip39"
 import { getNativeBalance, getTokenBalances, sendTransaction, getTransactions } from "./services/solana"
 import { LAMPORTS_PER_SOL } from "@solana/web3.js"
-import { sign } from "crypto"
-import { number } from "zod"
+import { getSwapQoute } from "./services/swap"
 
 const prisma = new PrismaClient()
 
@@ -824,15 +823,17 @@ app.get("/transactions/:signature", async (req, res) => {
   }
 })
 
-app.get("/swap/quote", async (req, res) => {
+app.post("/swap/quote", async (req, res) => {
 
   try {
     const { inputMint, outputMint, amount } = req.body
     if (!inputMint || !outputMint || typeof amount !== "number") {
       return res.status(400).json({ error: "inputMint, outputMint and amount are required" })
     }
-    //TODO:
-    //call jupiter api quote
+
+    const qoute = await getSwapQoute(inputMint, outputMint, amount)
+    return res.status(200).json(qoute)
+
   } catch (err) {
     console.error(err)
     return res.status(500).json({ error: "Internal Server Error" })
