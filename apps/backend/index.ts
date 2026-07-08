@@ -6,7 +6,7 @@ import { deriveSolanaWallet, importSolanaPrivateKey, generateMnemonic } from "./
 import { validateMnemonic } from "bip39"
 import { getNativeBalance, getTokenBalances, sendTransaction, getTransactions } from "./services/solana"
 import { LAMPORTS_PER_SOL } from "@solana/web3.js"
-import { getSwapQoute } from "./services/swap"
+import { getSwapOrder } from "./services/swap"
 
 const prisma = new PrismaClient()
 
@@ -826,13 +826,18 @@ app.get("/transactions/:signature", async (req, res) => {
 app.post("/swap/quote", async (req, res) => {
 
   try {
-    const { inputMint, outputMint, amount } = req.body
-    if (!inputMint || !outputMint || typeof amount !== "number") {
-      return res.status(400).json({ error: "inputMint, outputMint and amount are required" })
+    const { inputMint, outputMint, amount, addressId } = req.body
+    if (!inputMint || !outputMint || !addressId || typeof amount !== "number") {
+      return res.status(400).json({ error: "addressId, inputMint, outputMint and amount are required" })
     }
 
-    const qoute = await getSwapQoute(inputMint, outputMint, amount)
-    return res.status(200).json(qoute)
+    const address = await prisma.address.findUnique({ where: { id: addressId } })
+    if (!address) {
+      return res.status(404).json({ error: "Address not found" })
+    }
+
+    const order = await getSwapOrder(inputMint, outputMint, amount, address.publicKey)
+    return res.json(order)
 
   } catch (err) {
     console.error(err)
