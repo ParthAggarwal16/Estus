@@ -1,11 +1,15 @@
-const JUPITER_OUOTE_API_KEY = "https://lite-api.jup.ag/swap/v1/quote"
+const BASE_URL = "https://api.jup.ag/swap/v2"
 
-export async function getSwapQoute(inputMint: string, outputMint: string, amount: number) {
-  const params = new URLSearchParams({ inputMint, outputMint, amount: amount.toString(), slippageBps: "50" })
+const API_KEY = process.env.JUPITER_API_KEY!
+export async function getSwapOrder(inputMint: string, outputMint: string, amount: number, taker: string) {
+  const params = new URLSearchParams({ inputMint, outputMint, amount: amount.toString(), taker })
 
-  const response = await fetch(`${JUPITER_OUOTE_API_KEY}?${params}`)
+  const response = await fetch(`${BASE_URL}/order?${params}`, {
+    headers: { "x-api-key": API_KEY },
+  })
+
   if (!response.ok) {
-    throw new Error("Failed to fetch the swap qoute")
+    throw new Error(await response.text())
   }
 
   return await response.json()
