@@ -6,7 +6,7 @@ import { deriveSolanaWallet, importSolanaPrivateKey, generateMnemonic } from "./
 import { validateMnemonic } from "bip39"
 import { getNativeBalance, getTokenBalances, sendTransaction, getTransactions } from "./services/solana"
 import { LAMPORTS_PER_SOL } from "@solana/web3.js"
-import { getSwapOrder, executeSwap } from "./services/swap"
+import { getSwapOrder, executeSwap, getSwapRoutes } from "./services/swap"
 
 const prisma = new PrismaClient()
 
@@ -884,6 +884,39 @@ app.post("/swap/execute", async (req, res) => {
     return res.status(500).json({ error: "Internal Server Error" })
   }
 })
+
+app.get("/swap/routes", async (req, res) => {
+  try {
+    const inputMint = req.query.inputMint as string
+    const outputMint = req.query.outputMint as string
+    const amount = Number(req.query.amount)
+
+    if (!inputMint || !outputMint || Number.isNaN(amount)) {
+      return res.status(400).json({ error: "inputMint, outputMint and amount are required" })
+    }
+
+    const routes = await getSwapRoutes(inputMint, outputMint, amount)
+
+    return res.json({
+      inputMint: routes.inputMint,
+      outputMint: routes.outputMint,
+      inAmount: routes.inAmount,
+      outAmount: routes.outAmount,
+      swapMode: routes.swapMode,
+      slippageBps: routes.slippageBps,
+      priceImpact: routes.priceImpact,
+      router: routes.router,
+      routePlan: routes.routePlan,
+    })
+  } catch (err) {
+    console.error(err)
+
+    return res.status(500).json({
+      error: "Internal Server Error",
+    })
+  }
+})
+
 app.listen(3000, () => {
   console.log("Server started on http://localhost:3000")
 });
