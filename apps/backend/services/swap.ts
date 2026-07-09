@@ -14,6 +14,18 @@ export type ExecuteSwapResponse = {
   outputAmountResult?: string
 }
 
+type SwapRoutesResponse = {
+  inputMint: string
+  outputMint: string
+  inAmount: string
+  outAmount: string
+  swapMode: string
+  slippageBps: number
+  priceImpact: number
+  router: string
+  routePlan: unknown[]
+}
+
 export async function getSwapOrder(inputMint: string, outputMint: string, amount: number, taker: string) {
   const params = new URLSearchParams({ inputMint, outputMint, amount: amount.toString(), taker })
 
@@ -41,4 +53,18 @@ export async function executeSwap(signedTransaction: string, requestId: string):
   const result = (await response.json()) as ExecuteSwapResponse
 
   return result
+}
+
+export async function getSwapRoutes(inputMint: string, outputMint: string, amount: number): Promise<SwapRoutesResponse> {
+  const params = new URLSearchParams({ inputMint, outputMint, amount: amount.toString() })
+
+  const response = await fetch(`${BASE_URL}/order?${params}`, {
+    headers: { "x-api-key": process.env.JUPITER_API_KEY! },
+  })
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch swap routes")
+  }
+
+  return (await response.json()) as SwapRoutesResponse
 }
