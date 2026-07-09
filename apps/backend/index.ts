@@ -6,7 +6,7 @@ import { deriveSolanaWallet, importSolanaPrivateKey, generateMnemonic } from "./
 import { validateMnemonic } from "bip39"
 import { getNativeBalance, getTokenBalances, sendTransaction, getTransactions } from "./services/solana"
 import { LAMPORTS_PER_SOL } from "@solana/web3.js"
-import { getSwapOrder } from "./services/swap"
+import { getSwapOrder, executeSwap } from "./services/swap"
 
 const prisma = new PrismaClient()
 
@@ -845,6 +845,45 @@ app.post("/swap/quote", async (req, res) => {
   }
 })
 
+app.post("/swap/execute", async (req, res) => {
+  try {
+    if (!vaultUnlocked || !unlockedPassword) {
+      return res.status(401).json({ error: "Vault is locked" })
+    }
+
+    const { addressId, requestId, signedTransaction, inputTokenId, outputTokenId, inputAmount, outputAmount } = req.body
+
+    if (!addressId || !requestId || !signedTransaction || !inputTokenId || !outputTokenId || typeof inputAmount !== "number" || typeof outputAmount !== "number") {
+      return res.status(400).json({ error: "Missing required fields" })
+    }
+
+    const address = await prisma.address.findUnique({ where: { id: addressId } })
+
+    if (!address) {
+      return res.status(404).json({ error: "Address not found" })
+    }
+
+    const result = await executeSwap(signedTransaction, requestId)
+
+    if (result.status !== "Success") {
+      return res.status(400).json(result)
+    }
+
+    if (!result.signature) {
+      throw new Error("Swap succeeded but no transaction signature was returned")
+    }
+
+    const swap = await prisma.swap.create({
+      data: { addressId, inputTokenId, outputTokenId, inputAmount, outputAmount, transactionHash: result.signature },
+    })
+
+    return res.status(201).json({ message: "Swap executed", swap, execution: result })
+  } catch (err) {
+    console.error(err)
+
+    return res.status(500).json({ error: "Internal Server Error" })
+  }
+})
 app.listen(3000, () => {
   console.log("Server started on http://localhost:3000")
 });
