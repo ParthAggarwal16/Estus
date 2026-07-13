@@ -3,15 +3,14 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
-
   "prisma": {
     "seed": "bun prisma/seed.ts"
   },
-
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
     "@types/bun": "latest",
-    "@types/express": "^5.0.6"
+    "@types/express": "^5.0.6",
+    "@types/ws": "^8.18.1"
   },
   "peerDependencies": {
     "typescript": "^6.0.3"
@@ -26,6 +25,7 @@
     "ed25519-hd-key": "^2.0.0",
     "express": "^5.2.1",
     "prisma": "6",
+    "ws": "^8.21.0",
     "zod": "^4.4.3"
   }
 }
