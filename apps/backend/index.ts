@@ -5,8 +5,10 @@ import { encryptPrivateKey, decryptPrivateKey } from "./crypto/encryption"
 import { deriveSolanaWallet, importSolanaPrivateKey, generateMnemonic } from "./crypto/solana"
 import { validateMnemonic } from "bip39"
 import { getNativeBalance, getTokenBalances, sendTransaction, getTransactions } from "./services/solana"
-import { LAMPORTS_PER_SOL } from "@solana/web3.js"
+import { Connection, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js"
 import { getSwapOrder, executeSwap, getSwapRoutes } from "./services/swap"
+import { WebSocketServer } from "ws"
+import type { WebSocket } from "ws"
 
 const prisma = new PrismaClient()
 
@@ -917,6 +919,43 @@ app.get("/swap/routes", async (req, res) => {
   }
 })
 
-app.listen(3000, () => {
-  console.log("Server started on http://localhost:3000")
-});
+const PORT = 3000
+const server = app.listen(PORT, () => console.log(`Server started on http://localhost:${PORT}`))
+
+const wss = new WebSocketServer({ server, path: "/ws/balance" })
+wss.on("connection", (ws: WebSocket) => {
+  console.log("balance websocket connected")
+
+  let subscriptionId: number | null = null
+  let connection: Connection | null = null
+
+  ws.on("message", async (message) => {
+
+    const { addressId } = JSON.parse(message.toString())
+    const address = await prisma.address.findUnique({ where: { id: addressId } })
+
+    if (!address) {
+      ws.send(JSON.stringify({ error: "Address not found" }))
+      return
+    }
+    const network = await prisma.network.findUnique({ where: { id: address.networkId } })
+    if (!network) {
+      ws.send(JSON.stringify({ error: "Network not found" }))
+      return
+    }
+
+    connection = new Connection(network.rpcURL)
+    subscriptionId = connection.onAccountChange(
+      new PublicKey(address.publicKey),
+      (accountInfo) => {
+        ws.send(JSON.stringify({ addressId, lamports: accountInfo.lamports, sol: accountInfo.lamports / LAMPORTS_PER_SOL }))
+      }
+    )
+  })
+  ws.on("close", async () => {
+    console.log("websocket server disconnected")
+    if (connection && subscriptionId !== null) {
+      await connection.removeAccountChangeListener(subscriptionId)
+    }
+  })
+})
