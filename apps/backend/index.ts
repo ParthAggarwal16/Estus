@@ -966,42 +966,42 @@ balanceWss.on("connection", (ws: WebSocket) => {
   })
 })
 
-const transactionWss = new WebSocketServer({ noServer: true })
-transactionWss.on("connection", (ws: WebSocket) => {
-  console.log("transactions websocket connected")
-
-  let connection: Connection | null = null
-  let subscriptionId: number | null = null
-
-  ws.on("message", async (message) => {
-
-    const { addressId } = JSON.parse(message.toString())
-    const address = await prisma.address.findUnique({ where: { id: addressId }, include: { network: true } })
-    if (!address) {
-      ws.send(JSON.stringify({ error: "Address not found" }))
-      return
-    }
-    connection = new Connection(address.network.rpcURL)
-    subscriptionId = connection.onLogs(
-      new PublicKey(address.publicKey),
-      async (logs) => {
-        console.log("logs callback fired")
-
-        console.log(logs)
-        const transaction = await getTransaction(address.network.rpcURL, logs.signature)
-        if (transaction) {
-          ws.send(JSON.stringify({ address: address.publicKey, network: address.network.type, ...transaction }))
-        }
-      }, "confirmed"
-    )
-  })
-  ws.on("close", async () => {
-    console.log("transactions websocket disconnected")
-    if (connection && subscriptionId !== null) {
-      await connection.removeOnLogsListener(subscriptionId)
-    }
-  })
-})
+// const transactionWss = new WebSocketServer({ noServer: true })
+// transactionWss.on("connection", (ws: WebSocket) => {
+//   console.log("transactions websocket connected")
+//
+//   let connection: Connection | null = null
+//   let subscriptionId: number | null = null
+//
+//   ws.on("message", async (message) => {
+//
+//     const { addressId } = JSON.parse(message.toString())
+//     const address = await prisma.address.findUnique({ where: { id: addressId }, include: { network: true } })
+//     if (!address) {
+//       ws.send(JSON.stringify({ error: "Address not found" }))
+//       return
+//     }
+//     connection = new Connection(address.network.rpcURL)
+//     subscriptionId = connection.onLogs(
+//       new PublicKey(address.publicKey),
+//       async (logs) => {
+//         console.log("logs callback fired")
+//
+//         console.log(logs)
+//         const transaction = await getTransaction(address.network.rpcURL, logs.signature)
+//         if (transaction) {
+//           ws.send(JSON.stringify({ address: address.publicKey, network: address.network.type, ...transaction }))
+//         }
+//       }, "confirmed"
+//     )
+//   })
+//   ws.on("close", async () => {
+//     console.log("transactions websocket disconnected")
+//     if (connection && subscriptionId !== null) {
+//       await connection.removeOnLogsListener(subscriptionId)
+//     }
+//   })
+// })
 
 server.on("upgrade", (req, socket, head) => {
   const pathname = req.url?.split("?")[0]
@@ -1011,9 +1011,9 @@ server.on("upgrade", (req, socket, head) => {
       balanceWss.handleUpgrade(req, socket, head, (ws) => balanceWss.emit("connection", ws, req))
       break
 
-    case "/ws/transactions":
-      transactionWss.handleUpgrade(req, socket, head, (ws) => transactionWss.emit("connection", ws, req))
-      break
+    // case "/ws/transactions":
+    //   transactionWss.handleUpgrade(req, socket, head, (ws) => transactionWss.emit("connection", ws, req))
+    //   break
 
     default:
       socket.destroy()
