@@ -931,26 +931,31 @@ wss.on("connection", (ws: WebSocket) => {
 
   ws.on("message", async (message) => {
 
-    const { addressId } = JSON.parse(message.toString())
-    const address = await prisma.address.findUnique({ where: { id: addressId } })
+    try {
+      const { addressId } = JSON.parse(message.toString())
+      const address = await prisma.address.findUnique({ where: { id: addressId } })
 
-    if (!address) {
-      ws.send(JSON.stringify({ error: "Address not found" }))
-      return
-    }
-    const network = await prisma.network.findUnique({ where: { id: address.networkId } })
-    if (!network) {
-      ws.send(JSON.stringify({ error: "Network not found" }))
-      return
-    }
-
-    connection = new Connection(network.rpcURL)
-    subscriptionId = connection.onAccountChange(
-      new PublicKey(address.publicKey),
-      (accountInfo) => {
-        ws.send(JSON.stringify({ addressId, lamports: accountInfo.lamports, sol: accountInfo.lamports / LAMPORTS_PER_SOL }))
+      if (!address) {
+        ws.send(JSON.stringify({ error: "Address not found" }))
+        return
       }
-    )
+      const network = await prisma.network.findUnique({ where: { id: address.networkId } })
+      if (!network) {
+        ws.send(JSON.stringify({ error: "Network not found" }))
+        return
+      }
+
+      connection = new Connection(network.rpcURL)
+      subscriptionId = connection.onAccountChange(
+        new PublicKey(address.publicKey),
+        (accountInfo) => {
+          ws.send(JSON.stringify({ addressId, lamports: accountInfo.lamports, sol: accountInfo.lamports / LAMPORTS_PER_SOL }))
+        }
+      )
+    } catch (err) {
+      console.error(err)
+      ws.send(JSON.stringify({ error: "Invalid Request" }))
+    }
   })
   ws.on("close", async () => {
     console.log("websocket server disconnected")
