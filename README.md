@@ -1,4 +1,4 @@
-# backpack-clone
+# Estus(as close to backpack as possible)
 
 To install dependencies:
 
