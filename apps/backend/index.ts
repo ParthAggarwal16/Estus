@@ -1019,44 +1019,49 @@ swapQuoteWss.on("connection", (ws: WebSocket) => {
   let lastQoute = ""
 
   ws.on("message", async (message) => {
-    const { addressId, inputMint, outputMint, amount } = JSON.parse(message.toString())
-    if (!addressId || !inputMint || !outputMint || typeof amount !== "number") {
-      ws.send(JSON.stringify({ error: "Invalid Request" }))
-      return
-    }
-
-    const lamports = Math.round(amount * LAMPORTS_PER_SOL)
-
-    const address = await prisma.address.findUnique({ where: { id: addressId } })
-    if (!address) {
-      ws.send(JSON.stringify({ error: "Address not found" }))
-      return
-    }
-
-    if (poller) {
-      clearInterval(poller)
-    }
-    lastQoute = ""
-    const updateQoute = async () => {
-
-      try {
-        const qoute = await getSwapOrder(inputMint, outputMint, lamports, address.publicKey)
-        const serialized = JSON.stringify(qoute)
-
-        if (serialized !== lastQoute) {
-          lastQoute = serialized
-          ws.send(serialized)
-        }
-      } catch (err) {
-        console.error(err)
-        ws.send(stringify({ error: "Failed to fetch quote" }))
+    try {
+      const { addressId, inputMint, outputMint, amount } = JSON.parse(message.toString())
+      if (!addressId || !inputMint || !outputMint || typeof amount !== "number") {
+        ws.send(JSON.stringify({ error: "Invalid Request" }))
+        return
       }
-    }
 
-    await updateQoute()
-    poller = setInterval(() => {
-      void updateQoute()
-    }, 2000)
+      const lamports = Math.round(amount * LAMPORTS_PER_SOL)
+
+      const address = await prisma.address.findUnique({ where: { id: addressId } })
+      if (!address) {
+        ws.send(JSON.stringify({ error: "Address not found" }))
+        return
+      }
+
+      if (poller) {
+        clearInterval(poller)
+      }
+      lastQoute = ""
+      const updateQoute = async () => {
+
+        try {
+          const qoute = await getSwapOrder(inputMint, outputMint, lamports, address.publicKey)
+          const serialized = JSON.stringify(qoute)
+
+          if (serialized !== lastQoute) {
+            lastQoute = serialized
+            ws.send(serialized)
+          }
+        } catch (err) {
+          console.error(err)
+          ws.send(stringify({ error: "Failed to fetch quote" }))
+        }
+      }
+
+      await updateQoute()
+      poller = setInterval(() => {
+        void updateQoute()
+      }, 2000)
+    } catch (err) {
+      console.error(err)
+      ws.send(JSON.stringify({ error: "Invalid request" }))
+    }
   })
 
   ws.on("close", () => {
