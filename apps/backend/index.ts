@@ -10,6 +10,7 @@ import { getSwapOrder, executeSwap, getSwapRoutes } from "./services/swap"
 import { WebSocketServer } from "ws"
 import type { WebSocket } from "ws"
 import { error } from "console"
+import { stringify } from "querystring"
 
 const prisma = new PrismaClient()
 
@@ -1038,14 +1039,20 @@ swapQuoteWss.on("connection", (ws: WebSocket) => {
     lastQoute = ""
     const updateQoute = async () => {
 
-      const qoute = await getSwapOrder(inputMint, outputMint, lamports, address.publicKey)
-      const serialized = JSON.stringify(qoute)
+      try {
+        const qoute = await getSwapOrder(inputMint, outputMint, lamports, address.publicKey)
+        const serialized = JSON.stringify(qoute)
 
-      if (serialized !== lastQoute) {
-        lastQoute = serialized
-        ws.send(serialized)
+        if (serialized !== lastQoute) {
+          lastQoute = serialized
+          ws.send(serialized)
+        }
+      } catch (err) {
+        console.error(err)
+        ws.send(stringify({ error: "Failed to fetch quote" }))
       }
     }
+
     await updateQoute()
     poller = setInterval(() => {
       void updateQoute()
