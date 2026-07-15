@@ -4,11 +4,12 @@ import bcrypt from "bcrypt"
 import { encryptPrivateKey, decryptPrivateKey } from "./crypto/encryption"
 import { deriveSolanaWallet, importSolanaPrivateKey, generateMnemonic } from "./crypto/solana"
 import { validateMnemonic } from "bip39"
-import { getNativeBalance, getTokenBalances, sendTransaction, getTransactions, getTransaction } from "./services/solana"
+import { getNativeBalance, getTokenBalances, sendTransaction, getTransactions } from "./services/solana"
 import { Connection, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js"
 import { getSwapOrder, executeSwap, getSwapRoutes } from "./services/swap"
 import { WebSocketServer } from "ws"
 import type { WebSocket } from "ws"
+import { error } from "console"
 
 const prisma = new PrismaClient()
 
@@ -1003,6 +1004,64 @@ balanceWss.on("connection", (ws: WebSocket) => {
 //   })
 // })
 
+// the thing is that jupiter doesnt provide anything that can auto push qoute updates so we have to resort to 
+// polling, something i can do in order to make it a bit more efficient is to make it so that
+// client connect -- sends(inputMint, outputMint, amount) -- backend starts polling every 2 secs --
+// if qoute changed -- push --- client edits amount, stops timer, -- start new timer -- client disconnects -- new timer
+// lastQoute.amount -- newQoute.amount  -- if same -- dont send -- if not -- send
+
+const swapQuoteWss = new WebSocketServer({ noServer: true })
+swapQuoteWss.on("connection", (ws: WebSocket) => {
+  console.log("swap qoute websocket connected")
+
+  let poller: NodeJS.Timeout | null = null
+  let lastQoute = ""
+
+  ws.on("message", async (message) => {
+    const { addressId, inputMint, outputMint, amount } = JSON.parse(message.toString())
+    if (!addressId || !inputMint || !outputMint || typeof amount !== "number") {
+      ws.send(JSON.stringify({ error: "Invalid Request" }))
+      return
+    }
+
+    const lamports = Math.round(amount * LAMPORTS_PER_SOL)
+
+    const address = await prisma.address.findUnique({ where: { id: addressId } })
+    if (!address) {
+      ws.send(JSON.stringify({ error: "Address not found" }))
+      return
+    }
+
+    if (poller) {
+      clearInterval(poller)
+    }
+    lastQoute = ""
+    const updateQoute = async () => {
+
+      const qoute = await getSwapOrder(inputMint, outputMint, lamports, address.publicKey)
+      const serialized = JSON.stringify(qoute)
+
+      if (serialized !== lastQoute) {
+        lastQoute = serialized
+        ws.send(serialized)
+      }
+    }
+    await updateQoute()
+    poller = setInterval(() => {
+      void updateQoute()
+    }, 2000)
+  })
+
+  ws.on("close", () => {
+    console.log("swap qoute websocket disconnected")
+    if (poller) {
+      clearInterval(poller)
+      poller = null
+    }
+  })
+
+})
+
 server.on("upgrade", (req, socket, head) => {
   const pathname = req.url?.split("?")[0]
 
@@ -1014,6 +1073,10 @@ server.on("upgrade", (req, socket, head) => {
     // case "/ws/transactions":
     //   transactionWss.handleUpgrade(req, socket, head, (ws) => transactionWss.emit("connection", ws, req))
     //   break
+
+    case "/ws/swap-quotes":
+      swapQuoteWss.handleUpgrade(req, socket, head, (ws) => swapQuoteWss.emit("connection", ws, req))
+      break
 
     default:
       socket.destroy()
