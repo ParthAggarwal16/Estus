@@ -17,3 +17,9 @@ export async function sendTransaction(rpcUrl: string, privateKey: string, to: st
   const receipt = await tx.wait()
   return { hash: tx.hash, blockNumber: receipt?.blockNumber, status: receipt?.status === 1 ? "success" : "failed" }
 }
+
+export async function getTransactions(_rpcUrl: string, _address: string) {
+
+  throw new Error("ethereum transaction history requires an indexer such as etherscan, alchemy or infura. json rpc alone cannot fetch address history")
+
+}
