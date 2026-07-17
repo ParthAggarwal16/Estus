@@ -12,6 +12,7 @@ import type { WebSocket } from "ws"
 import { error } from "console"
 import { stringify } from "querystring"
 import { deriveEthereumWallet, walletFromPrivateKey } from "./crypto/ethereum"
+import { getBalance } from "./services/ethereum"
 
 const prisma = new PrismaClient()
 
@@ -660,13 +661,27 @@ app.get("/addresses/:id/balance", async (req, res) => {
       return res.status(404).json({ error: "Address not found" })
     }
 
-    if (address.network.type !== "SOLANA") {
-      return res.status(400).json({ error: "Network not supported yet" })
+    switch (address.network.type) {
+      case "SOLANA": {
+        const balance = await getNativeBalance(address.network.rpcURL, address.publicKey)
+        return res.status(200).json({
+          address: address.publicKey,
+          network: address.network.type,
+          ...balance,
+        })
+      }
+
+      case "ETHEREUM": {
+        const balance = await getBalance(address.network.rpcURL, address.publicKey)
+        return res.status(200).json({
+          address: address.publicKey,
+          network: address.network.type,
+          ...balance,
+        })
+      }
+      default:
+        return res.status(400).json({ error: `${address.network.type} not supported yet` })
     }
-
-    const balance = await getNativeBalance(address.network.rpcURL, address.publicKey)
-
-    return res.status(200).json({ address: address.publicKey, network: address.network.type, ...balance })
   } catch (err) {
     console.error(err)
     return res.status(500).json({ error: "Internal Server Error" })
@@ -681,34 +696,47 @@ app.get("/addresses/:id/balances", async (req, res) => {
     if (!address) {
       return res.status(404).json({ error: "Address not found" })
     }
-    if (address.network.type !== "SOLANA") {
-      return res.status(400).json({ error: "Network not supported yet" })
-    }
 
-    const nativeBalance = await getNativeBalance(address.network.rpcURL, address.publicKey)
-    const tokenBalances = await getTokenBalances(address.network.rpcURL, address.publicKey)
+    switch (address.network.type) {
+      case "SOLANA": {
+        const nativeBalance = await getNativeBalance(address.network.rpcURL, address.publicKey)
+        const tokenBalances = await getTokenBalances(address.network.rpcURL, address.publicKey)
+        const tokens = await prisma.token.findMany({
+          where: {
+            mintAddress: { in: tokenBalances.map((t) => t.mintAddress) },
+          }
+        })
 
-    const tokens = await prisma.token.findMany({ where: { mintAddress: { in: tokenBalances.map((t) => t.mintAddress) } } })
-
-    const balances = tokenBalances.map((balance) => {
-      const token = tokens.find(
-        (t) => t.mintAddress === balance.mintAddress
-      )
-
-      return {
-        symbol: token?.symbol ?? "UNKNOWN",
-        name: token?.name ?? "Unknown Token",
-        mintAddress: balance.mintAddress,
-        amount: balance.amount,
+        const balances = tokenBalances.map((balance) => {
+          const token = tokens.find((t) => t.mintAddress === balance.mintAddress)
+          return {
+            symbol: token?.symbol ?? "UNKNOWN",
+            name: token?.name ?? "Unknown Token",
+            mintAddress: balance.mintAddress,
+            amount: balance.amount,
+          }
+        })
+        return res.status(200).json({
+          address: address.publicKey,
+          network: address.network.type,
+          native: nativeBalance,
+          tokens: balances,
+        })
       }
-    })
 
-    return res.status(200).json({
-      address: address.publicKey,
-      network: address.network.type,
-      native: nativeBalance,
-      tokens: balances,
-    })
+      case "ETHEREUM": {
+        const nativeBalance = await getBalance(address.network.rpcURL, address.publicKey)
+        return res.status(200).json({
+          address: address.publicKey,
+          network: address.network.type,
+          native: nativeBalance,
+          tokens: [],
+        })
+      }
+
+      default:
+        return res.status(400).json({ error: `${address.network.type} not supported yet` })
+    }
   } catch (err) {
     console.error(err)
     return res.status(500).json({ error: "Internal Server Error" })
