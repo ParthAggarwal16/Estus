@@ -11,6 +11,7 @@ import { WebSocketServer } from "ws"
 import type { WebSocket } from "ws"
 import { error } from "console"
 import { stringify } from "querystring"
+import { deriveEthereumWallet } from "./crypto/ethereum"
 
 const prisma = new PrismaClient()
 
@@ -269,6 +270,13 @@ app.post("/accounts/:id/addresses/create", async (req, res) => {
         publicKey = wallet.publicKey
         privateKey = wallet.privateKey
         derivationPath = wallet.derivationPath
+        break
+      }
+      case "ETHEREUM": {
+        const wallet = deriveEthereumWallet(mnemonic, walletIndex)
+        publicKey = wallet.address,
+          privateKey = wallet.privateKey,
+          derivationPath = wallet.path
         break
       }
 
