@@ -11,7 +11,7 @@ import { WebSocketServer } from "ws"
 import type { WebSocket } from "ws"
 import { error } from "console"
 import { stringify } from "querystring"
-import { deriveEthereumWallet } from "./crypto/ethereum"
+import { deriveEthereumWallet, walletFromPrivateKey } from "./crypto/ethereum"
 
 const prisma = new PrismaClient()
 
@@ -415,6 +415,13 @@ app.post("/accounts/:id/addresses/import", async (req, res) => {
           break
         }
 
+        case "ETHEREUM": {
+          const wallet = walletFromPrivateKey(privateKey)
+          publicKey = wallet.address
+          encryptedKey = encryptPrivateKey(wallet.privateKey, unlockedPassword!)
+          break
+        }
+
         default:
           return res.status(400).json({ error: `${network.type} not supported yet` })
       }
@@ -443,6 +450,13 @@ app.post("/accounts/:id/addresses/import", async (req, res) => {
           encryptedKey = encryptPrivateKey(wallet.privateKey, unlockedPassword!)
           derivationPath = wallet.derivationPath
 
+          break
+        }
+
+        case "ETHEREUM": {
+          const wallet = deriveEthereumWallet(mnemonic, accountIndex)
+          publicKey = wallet.address
+          encryptedKey = encryptPrivateKey(wallet.privateKey, unlockedPassword!)
           break
         }
 
