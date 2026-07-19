@@ -11,7 +11,8 @@ import { WebSocketServer } from "ws"
 import type { WebSocket } from "ws"
 import { stringify } from "querystring"
 import { deriveEthereumWallet, walletFromPrivateKey } from "./crypto/ethereum"
-import { getBalance } from "./services/ethereum"
+import { getBalance, sendEthTransaction } from "./services/ethereum"
+import { parseEther } from "ethers"
 
 const prisma = new PrismaClient()
 
@@ -750,26 +751,38 @@ app.post("/transactions/send", async (req, res) => {
     }
 
     const { fromAddressId, toPublicKey, amount } = req.body
-    if (!fromAddressId || !toPublicKey || !amount || typeof amount !== "number") {
-      return res.status(400).json({ error: "fromAddressId, toPublicKey and amounts are required" })
-    }
 
-    const lamports = Math.round(amount * LAMPORTS_PER_SOL)
+    if (!fromAddressId || !toPublicKey || typeof amount !== "number") {
+      return res.status(400).json({ error: "fromAddressId, toPublicKey and amount are required" })
+    }
 
     const address = await prisma.address.findUnique({ where: { id: fromAddressId }, include: { network: true } })
     if (!address) {
       return res.status(404).json({ error: "Address not found" })
     }
 
-    if (address.network.type !== "SOLANA") {
-      return res.status(401).json({ error: `${address.network.type} not supported yet` })
-    }
-
     const privateKey = decryptPrivateKey(address.encryptedKey, unlockedPassword)
 
+    switch (address.network.type) {
+      case "SOLANA": {
+        const lamports = Math.round(amount * LAMPORTS_PER_SOL)
 
-    const tx = await sendTransaction(address.network.rpcURL, privateKey, toPublicKey, lamports)
-    return res.status(200).json(tx)
+        const tx = await sendTransaction(address.network.rpcURL, privateKey, toPublicKey, lamports)
+
+        return res.status(200).json(tx)
+      }
+
+      case "ETHEREUM": {
+        const wei = parseEther(amount.toString())
+        const tx = await sendEthTransaction(address.network.rpcURL, privateKey, toPublicKey, wei)
+        return res.status(200).json(tx)
+      }
+
+      default:
+        return res.status(400).json({
+          error: `${address.network.type} not supported yet`,
+        })
+    }
   } catch (err) {
     console.error(err)
     return res.status(500).json({ error: "Internal Server Error" })

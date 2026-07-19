@@ -8,7 +8,7 @@ export async function getBalance(rpcUrl: string, address: string) {
   return { wei: balance.toString(), eth: formatEther(balance) }
 }
 
-export async function sendTransaction(rpcUrl: string, privateKey: string, to: string, amountWei: bigint) {
+export async function sendEthTransaction(rpcUrl: string, privateKey: string, to: string, amountWei: bigint) {
 
   const provider = new JsonRpcProvider(rpcUrl)
   const wallet = new Wallet(privateKey, provider)
