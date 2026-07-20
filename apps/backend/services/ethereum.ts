@@ -1,4 +1,4 @@
-import { JsonRpcProvider, formatEther, Wallet } from "ethers"
+import { JsonRpcProvider, formatEther, Wallet, Contract } from "ethers"
 
 export async function getBalance(rpcUrl: string, address: string) {
   const provider = new JsonRpcProvider(rpcUrl)
@@ -51,3 +51,18 @@ export async function getTransaction(rpcUrl: string, signature: string) {
           : "pending",
   }
 }
+
+const ERC20_ABI = [""]
+
+export async function getTokenBalances(rpcUrl: string, walletAddress: string, tokens: {
+  symbol: string, name: string, mintAddress: string, decimals: string
+}[]
+) {
+  const provider = new JsonRpcProvider(rpcUrl)
+  const balance = await Promise.all(
+    tokens.map(async (token) => {
+      const contract = new Contract(token.mintAddress, ERC20_ABI, provider)
+    })
+  )
+}
+
