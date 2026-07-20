@@ -11,7 +11,7 @@ import { WebSocketServer } from "ws"
 import type { WebSocket } from "ws"
 import { stringify } from "querystring"
 import { deriveEthereumWallet, walletFromPrivateKey } from "./crypto/ethereum"
-import { getBalance, sendEthTransaction } from "./services/ethereum"
+import { getBalance, getEthTokenBalances, sendEthTransaction } from "./services/ethereum"
 import { parseEther } from "ethers"
 
 const prisma = new PrismaClient()
@@ -741,11 +741,18 @@ app.get("/addresses/:id/balances", async (req, res) => {
 
       case "ETHEREUM": {
         const nativeBalance = await getBalance(address.network.rpcURL, address.publicKey)
+
+        const tokens = await prisma.token.findMany({
+          where: { networkId: address.networkId },
+          select: { symbol: true, name: true, mintAddress: true, decimals: true }
+        })
+
+        const tokenBalances = await getEthTokenBalances(address.network.rpcURL, address.publicKey, tokens)
         return res.status(200).json({
           address: address.publicKey,
           network: address.network.type,
           native: nativeBalance,
-          tokens: [],
+          tokens: tokenBalances,
         })
       }
 

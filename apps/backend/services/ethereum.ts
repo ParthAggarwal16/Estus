@@ -55,7 +55,7 @@ export async function getTransaction(rpcUrl: string, signature: string) {
 type ERC20Token = { symbol: string, name: string, mintAddress: string, decimals: number; }
 const ERC20_ABI = ["function balanceOf(address owner) view returns (uint256)"]
 
-export async function getTokenBalances(rpcUrl: string, walletAddress: string, tokens: ERC20Token[]) {
+export async function getEthTokenBalances(rpcUrl: string, walletAddress: string, tokens: ERC20Token[]) {
 
   const provider = new JsonRpcProvider(rpcUrl)
   const balances = await Promise.all(
