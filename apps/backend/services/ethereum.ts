@@ -1,4 +1,4 @@
-import { JsonRpcProvider, formatEther, Wallet, Contract } from "ethers"
+import { JsonRpcProvider, formatEther, Wallet, Contract, formatUnits } from "ethers"
 
 export async function getBalance(rpcUrl: string, address: string) {
   const provider = new JsonRpcProvider(rpcUrl)
@@ -52,17 +52,26 @@ export async function getTransaction(rpcUrl: string, signature: string) {
   }
 }
 
-const ERC20_ABI = [""]
+type ERC20Token = { symbol: string, name: string, mintAddress: string, decimals: number; }
+const ERC20_ABI = ["function balanceOf(address owner) view returns (uint256)"]
 
-export async function getTokenBalances(rpcUrl: string, walletAddress: string, tokens: {
-  symbol: string, name: string, mintAddress: string, decimals: string
-}[]
-) {
+export async function getTokenBalances(rpcUrl: string, walletAddress: string, tokens: ERC20Token[]) {
+
   const provider = new JsonRpcProvider(rpcUrl)
-  const balance = await Promise.all(
+  const balances = await Promise.all(
     tokens.map(async (token) => {
-      const contract = new Contract(token.mintAddress, ERC20_ABI, provider)
+      const contract = new Contract(token.mintAddress, ERC20_ABI, provider) as Contract & {
+        balanceOf(address: string): Promise<bigint>
+      }
+
+      const rawBalance = await contract.balanceOf(walletAddress)
+      return {
+        symbol: token.symbol,
+        name: token.name,
+        mintAddress: token.mintAddress,
+        amount: formatUnits(rawBalance, token.decimals),
+      }
     })
   )
+  return balances.filter((token) => parseFloat(token.amount) > 0)
 }
-
