@@ -65,6 +65,7 @@ model Token {
   network     Network  @relation(fields: [networkId], references: [id])
   networkId   String
   createdAt   DateTime @default(now())
+  decimals    Int      @default(18)
 }
 
 enum NetworkType {
