@@ -258,7 +258,14 @@ app.post("/accounts/:id/addresses/create", async (req, res) => {
       await prisma.seedPhrase.create({ data: { accountId, encryptedMnemonic: encryptPrivateKey(mnemonic, unlockedPassword!) } })
     }
 
-    const walletIndex = await prisma.address.count({ where: { accountId } })
+    const derivationPrefix = network.type === "SOLANA" ? "m/44'/501'" : "m/44'/60'"
+
+    const derivedAddresses = await prisma.address.findMany({
+      where: { accountId, derivationPath: { startsWith: derivationPrefix } },
+      select: { derivationPath: true },
+    })
+
+    const walletIndex = derivedAddresses.length === 0 ? 0 : Math.max(...derivedAddresses.map((a) => Number(a.derivationPath!.split("/").pop()))) + 1
 
     let publicKey: string
     let privateKey: string
@@ -434,9 +441,16 @@ app.post("/accounts/:id/addresses/import", async (req, res) => {
       let accountIndex = 0
 
       if (account.seedPhrase) {
-        accountIndex = await prisma.address.count({
-          where: { accountId, derivationPath: { not: null } },
+        const derivationPrefix =
+          network.type === "SOLANA" ? "m/44'/501'" : "m/44'/60'"
+
+        const derivedAddresses = await prisma.address.findMany({
+          where: { accountId, derivationPath: { startsWith: derivationPrefix } },
+          select: { derivationPath: true },
         })
+
+        accountIndex =
+          derivedAddresses.length === 0 ? 0 : Math.max(...derivedAddresses.map((a) => Number(a.derivationPath!.split("/").pop()))) + 1
       } else {
         await prisma.seedPhrase.create({
           data: { accountId, encryptedMnemonic: encryptPrivateKey(mnemonic, unlockedPassword!) },
