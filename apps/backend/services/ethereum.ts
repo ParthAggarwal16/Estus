@@ -61,7 +61,7 @@ export async function getTokenBalances(rpcUrl: string, walletAddress: string, to
   const balances = await Promise.all(
     tokens.map(async (token) => {
       const contract = new Contract(token.mintAddress, ERC20_ABI, provider) as Contract & {
-        balanceOf(address: string): Promise<bigint>
+        balanceOf(address: string): Promise<bigint>//took the help of a clanker in this one, taking accountability
       }
 
       const rawBalance = await contract.balanceOf(walletAddress)
