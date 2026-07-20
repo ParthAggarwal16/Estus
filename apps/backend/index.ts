@@ -458,6 +458,7 @@ app.post("/accounts/:id/addresses/import", async (req, res) => {
           const wallet = deriveEthereumWallet(mnemonic, accountIndex)
           publicKey = wallet.address
           encryptedKey = encryptPrivateKey(wallet.privateKey, unlockedPassword!)
+          derivationPath = wallet.path
           break
         }
 
