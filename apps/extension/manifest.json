@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Lumen",
+  "name": "Estus",
   "version": "0.1",
 
   "permissions": ["storage"],
@@ -18,4 +18,12 @@
       "js": ["dist/content.js"],
       "run_at": "document_start"
     }
-]
+  ],
+
+  "web_accessible_resources": [
+    {
+      "resources": ["dist/provider.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import { build } from "esbuild";
+import { build } from "esbuild"
 
 await build({
   entryPoints: ["index.ts"],
@@ -7,15 +7,24 @@ await build({
   platform: "browser",
   target: "es2022",
   format: "esm",
-});
+})
 
 await build({
-  entryPoints: ["index.ts"],
+  entryPoints: ["content.ts"],
   outfile: "dist/content.js",
   bundle: true,
   platform: "browser",
   target: "es2022",
   format: "esm",
-});
+})
 
-console.log("Extension build complete");
+await build({
+  entryPoints: ["provider.ts"],
+  outfile: "dist/provider.js",
+  bundle: true,
+  platform: "browser",
+  target: "es2022",
+  format: "iife",
+})
+
+console.log("Extension build complete")
