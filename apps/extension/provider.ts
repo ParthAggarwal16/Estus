@@ -4,7 +4,13 @@ const provider = {
   isConnected: false,
 
   connect() {
-    console.log("connect() called")
+    window.postMessage(
+      {
+        target: "estus-content",
+        type: "CONNECT",
+      },
+      "*",
+    )
   },
 
   disconnect() {
