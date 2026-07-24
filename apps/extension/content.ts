@@ -13,9 +13,9 @@ window.addEventListener("message", (event) => {
 
   if (event.data?.target !== "estus-content") return
 
-  console.log("Content received:", event.data)
-
-  chrome.runtime.sendMessage(event.data)
+  chrome.runtime.sendMessage(event.data, (response) => {
+    window.postMessage({ target: "estus-page", id: event.data.id, response }, "*")
+  })
 })
 
 console.log("[Estus] Provider injected")
