@@ -1,14 +1,14 @@
 console.log("Estus background started")
 
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  console.log("Background received:", message)
+chrome.runtime.onMessage.addListener((message, sender) => {
+  console.log("[Background]", message)
 
-  switch (message.type) {
-    case "CONNECT":
-      sendResponse({ success: true, publicKey: "DemoPublicKey123" })
-      break
+  if (message.type === "CONNECT") {
+    chrome.tabs.sendMessage(sender.tab!.id!, {
+      type: "CONNECT_RESPONSE",
+      publicKey:
+        "GB9GVaBsUkLXdhXzNPgaZBb8Xr7RQQk9GUzeNky6KQ3g",
+    })
   }
-
-  return true
 })
 //background
