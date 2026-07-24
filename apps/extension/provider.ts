@@ -4,30 +4,28 @@ const provider = {
   isConnected: false,
 
   async connect() {
-    const id = crypto.randomUUID()
 
     return new Promise((resolve) => {
       const listener = (event: MessageEvent) => {
         if (event.source !== window)
           return
-        if (event.data?.target !== "estus-page")
+        if (event.data?.target !== "estus-provider")
           return
-        if (event.data?.id !== id)
+        if (event.data?.type !== "CONNECT_RESPONSE")
           return
 
         window.removeEventListener("message", listener)
         provider.isConnected = true
-        resolve(event.data.response)
+        resolve({ publicKey: event.data.publicKey })
       }
 
       window.addEventListener("message", listener)
-      window.postMessage({ target: "estus-content", type: "CONNECT", id }, "*")
+      window.postMessage({ target: "estus-content", type: "CONNECT" }, "*")
     })
   },
 
   disconnect() {
     provider.isConnected = false
-    console.log("disconnect() called")
   },
 }
 
